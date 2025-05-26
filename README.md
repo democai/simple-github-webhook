@@ -15,7 +15,7 @@ A lightweight, zero-dependency GitHub webhook server that triggers deployments u
 - **📁 Symlink Friendly** - Works seamlessly with symlinked repository directories
 - **📋 Rich Logging** - Real-time deploy output with rolling buffers
 - **⚡ Zero Dependencies** - Pure Node.js with no external packages
-- **🛠️ Just Integration** - Uses `just prod-deploy {hash}` for deployment commands
+- **🛠️ Just Integration** - Uses `just github-deploy {hash}` for deployment commands
 
 ## 🏗️ How It Works
 
@@ -24,7 +24,7 @@ A lightweight, zero-dependency GitHub webhook server that triggers deployments u
 3. **Prevents double-spawning** → Guards against concurrent deploys
 4. **Verifies repository** → Ensures `repos/{repo_name}` directory exists
 5. **Sets GitHub status** → Marks deploy as "pending"
-6. **Runs deployment** → Executes `just prod-deploy {git_hash}` in repo directory
+6. **Runs deployment** → Executes `just github-deploy {git_hash}` in repo directory
 7. **Reports results** → Updates GitHub status and adds comments on failure
 
 ## 📦 Installation
@@ -33,7 +33,7 @@ A lightweight, zero-dependency GitHub webhook server that triggers deployments u
 
 - **Node.js 18+** 
 - **[Just](https://github.com/casey/just)** - Command runner
-- **Git repositories** with `justfile` containing `prod-deploy` recipe
+- **Git repositories** with `justfile` containing `github-deploy` recipe
 
 ### Quick Start
 
@@ -99,13 +99,13 @@ your-webhook-server/
 
 ### Repository Requirements
 
-Each repository must have a `justfile` with a `prod-deploy` recipe:
+Each repository must have a `justfile` with a `github-deploy` recipe:
 
 ```just
 set dotenv-load
 
 # Example justfile in your repository
-prod-deploy hash:
+github-deploy hash:
     @echo "Deploying {{hash}}..."
     git fetch origin
     git checkout {{hash}}
@@ -178,7 +178,7 @@ When `GITHUB_TOKEN` is configured:
 
 - ✅ **Commit statuses**: `pending` → `success`/`failure`/`error`
 - 💬 **Error comments**: Automatic comments with deploy failure details
-- 📊 **Deploy context**: All statuses use `prod-deploy` context
+- 📊 **Deploy context**: All statuses use `github-deploy` context
 
 ## 🛡️ Security Best Practices
 
@@ -222,7 +222,7 @@ just config
 ```bash
 # Test deploy command manually
 cd repos/your-repo-name
-just prod-deploy main
+just github-deploy main
 ```
 
 ### Debug Mode

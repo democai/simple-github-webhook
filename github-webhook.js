@@ -61,7 +61,7 @@ async function setStatus(repo, sha, state, desc) {
   await callGitHub(
     'POST',
     `/repos/${repo}/statuses/${sha}`,
-    { state, description: desc.slice(0, 140), context: 'prod-deploy' }
+    { state, description: desc.slice(0, 140), context: 'github-deploy' }
   );
 }
 
@@ -141,9 +141,9 @@ http.createServer(async (req, res) => {
       }
       await setStatus(repo, sha, 'pending', 'Deploy started');
       
-      console.log(`🚀 Starting deploy: just prod-deploy ${sha} (in ${cwd})`);
+      console.log(`🚀 Starting deploy: just github-deploy ${sha} (in ${cwd})`);
       
-      const proc = spawn('just', ['prod-deploy', sha], { 
+      const proc = spawn('just', ['github-deploy', sha], { 
         cwd,
         stdio: ['ignore', 'pipe', 'pipe']
       });
