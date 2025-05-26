@@ -107,8 +107,8 @@ set dotenv-load
 # Example justfile in your repository
 github-deploy hash:
     @echo "Deploying {{hash}}..."
-    git fetch origin
-    git checkout {{hash}}
+    git fetch origin {{hash}}
+    git checkout FETCH_HEAD
     npm ci
     npm run build
     systemctl reload your-app
