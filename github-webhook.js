@@ -132,11 +132,13 @@ http.createServer(async (req, res) => {
     
     if (pathParts.length === 2) {
       const [repoName, gitHash] = pathParts;
-      const logPath = path.join(LOG_DIR, repoName, `${gitHash}.txt`);
+      // Remove .txt extension from gitHash if present
+      const cleanHash = gitHash.replace(/\.txt$/, '');
+      const logPath = path.join(LOG_DIR, repoName, `${cleanHash}.txt`);
       
       console.log('Looking for log file:', {
         repoName,
-        gitHash,
+        gitHash: cleanHash,
         logPath,
         exists: fs.existsSync(logPath)
       });
