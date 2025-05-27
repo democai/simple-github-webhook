@@ -1,5 +1,5 @@
-// webhook.js
-// "World's simplest GitHub webhook" – vanilla Node, no frameworks
+// github-webhook.js
+// "Simplest GitHub webhook" – vanilla Node, no frameworks
 
 // --- Module imports ---
 const http   = require('http');           // HTTP server
@@ -7,11 +7,13 @@ const https  = require('https');          // For GitHub API calls
 const crypto = require('crypto');         // For HMAC signature verification
 const fs     = require('fs');             // For filesystem access
 const { spawn } = require('child_process'); // For running shell commands
+const path   = require('path');           // For path manipulation
 
 // --- Configuration ---
 const PORT   = process.env.PORT || 3000;           // Port to listen on
 const SECRET = process.env.WEBHOOK_SECRET || '';   // HMAC secret for signature verification
 const TOKEN  = process.env.GITHUB_TOKEN;           // GitHub token for status/comments
+const LOG_DIR = process.env.LOG_DIR;               // Directory for deployment logs
 
 // Track running deploys to prevent concurrent deploys for the same repo/branch
 const runningDeploys = new Set();
@@ -116,6 +118,31 @@ function withDeployLock(deployKey, fn) {
 
 // Create the HTTP server to receive GitHub webhook events
 http.createServer(async (req, res) => {
+  // Handle log file requests
+  if (req.method === 'GET' && LOG_DIR) {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    if (pathParts.length === 2) {
+      const [repoName, gitHash] = pathParts;
+      const logPath = path.join(LOG_DIR, repoName, `${gitHash}.txt`);
+      
+      try {
+        const stats = await fs.promises.stat(logPath);
+        if (stats.isFile()) {
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          fs.createReadStream(logPath).pipe(res);
+          return;
+        }
+      } catch (err) {
+        // File doesn't exist or other error
+      }
+      // If we get here, the file doesn't exist or there was an error
+      res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Log file not found');
+      return;
+    }
+  }
+
   if (req.method !== 'POST') {
     // Only accept POST requests
     return res.writeHead(405, { 'Content-Type': 'text/plain' }).end('Method Not Allowed');
@@ -201,6 +228,16 @@ http.createServer(async (req, res) => {
         // Start the deploy process (e.g. using just github-deploy)
         console.log(`🚀 Starting deploy: just github-deploy ${sha} (in ${cwd})`);
 
+        let logStream;
+        if (LOG_DIR) {
+          const logDir = path.join(LOG_DIR, repoName);
+          const logPath = path.join(logDir, `${sha}.txt`);
+          
+          // Ensure log directory exists
+          await fs.promises.mkdir(logDir, { recursive: true });
+          logStream = fs.createWriteStream(logPath);
+        }
+
         const proc = spawn('just', ['github-deploy', sha], {
           cwd,
           stdio: ['ignore', 'pipe', 'pipe']
@@ -215,6 +252,9 @@ http.createServer(async (req, res) => {
               lines.push(trimmed);
               console.log(`[deploy] ${trimmed}`);
               if (lines.length > 50) lines.shift(); // Keep last 50 lines
+              if (logStream) {
+                logStream.write(trimmed + '\n');
+              }
             }
           });
         };
@@ -224,6 +264,10 @@ http.createServer(async (req, res) => {
 
         // Handle deploy process exit
         proc.on('close', async code => {
+          if (logStream) {
+            logStream.end();
+          }
+          
           const success = code === 0;
           const status = success ? 'success' : 'failure';
           const desc = success ? 'Deploy complete' : 'Deploy failed';
