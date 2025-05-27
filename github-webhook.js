@@ -123,9 +123,23 @@ http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const pathParts = url.pathname.split('/').filter(Boolean);
     
+    console.log('Log request:', {
+      url: req.url,
+      pathname: url.pathname,
+      pathParts,
+      host: req.headers.host
+    });
+    
     if (pathParts.length === 2) {
       const [repoName, gitHash] = pathParts;
       const logPath = path.join(LOG_DIR, repoName, `${gitHash}.txt`);
+      
+      console.log('Looking for log file:', {
+        repoName,
+        gitHash,
+        logPath,
+        exists: fs.existsSync(logPath)
+      });
       
       try {
         const stats = await fs.promises.stat(logPath);
@@ -135,7 +149,7 @@ http.createServer(async (req, res) => {
           return;
         }
       } catch (err) {
-        // File doesn't exist or other error
+        console.error('Log file error:', err);
       }
       // If we get here, the file doesn't exist or there was an error
       res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Log file not found');
