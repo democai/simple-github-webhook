@@ -14,6 +14,7 @@ A lightweight, zero-dependency GitHub webhook server that triggers deployments u
 - **🚫 Double-spawn Protection** - Prevents concurrent deploys on force pushes
 - **📁 Symlink Friendly** - Works seamlessly with symlinked repository directories
 - **📋 Rich Logging** - Real-time deploy output with rolling buffers
+- **📝 Persistent Logs** - Optional deployment log storage and HTTP access
 - **⚡ Zero Dependencies** - Pure Node.js with no external packages
 - **🛠️ Just Integration** - Uses `just github-deploy {hash}` for deployment commands
 
@@ -70,6 +71,9 @@ WEBHOOK_SECRET=your_webhook_secret_here
 
 # GitHub API Access (optional but recommended)
 GITHUB_TOKEN=ghp_your_github_token_here
+
+# Deployment Logging (optional)
+LOG_DIR=/path/to/logs  # Store and serve deployment logs
 ```
 
 ### GitHub Webhook Setup
@@ -93,9 +97,18 @@ your-webhook-server/
 │   ├── repo1 -> /path/to/actual/repo1
 │   ├── repo2 -> /path/to/actual/repo2
 │   └── ...
-└── logs/
+└── logs/               # Server logs
     └── webhook.log     # Server logs
 ```
+
+### Deployment Logs
+
+When `LOG_DIR` is configured:
+
+- Deployment logs are stored in `{LOG_DIR}/{reponame}/{githash}.txt`
+- Logs are available via HTTP at `/{reponame}/{githash}.txt`
+- Logs are created and updated in real-time during deployment
+- 404 responses for non-existent logs
 
 ### Repository Requirements
 
